@@ -1,0 +1,1062 @@
+{
+  "name": "Fardeel Job Hunt Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a3e0ddd5-6404-44eb-a8d0-42d01fd47df7",
+      "name": "Wait After Search",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        1040
+      ],
+      "webhookId": "90e8ff81-4cd7-4d68-90e0-d3a1e30738c7"
+    },
+    {
+      "parameters": {},
+      "id": "f8cc683c-362a-4062-9fe1-f7eacc12d08e",
+      "name": "Wait After Scoring",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        2912
+      ],
+      "webhookId": "9ab9e2f0-ac32-4499-a026-0732063cba80"
+    },
+    {
+      "parameters": {},
+      "id": "08a72024-6f1b-461a-a2b2-3bbd3e4da365",
+      "name": "Wait After Cover Letter",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        3136
+      ],
+      "webhookId": "500c0c17-bda4-4fa1-9159-174a64c70960"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "11e9aece-9e0d-40e0-9dce-5c269bc7701b",
+      "name": "Daily Job Search - 9 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const queries = [\n  'Android Developer Kotlin remote job hiring 2025',\n  'Jetpack Compose developer remote position',\n];\n\nreturn queries.map(q => ({ query: q }));"
+      },
+      "id": "098c0a58-d298-41d6-a058-a8fa43207a16",
+      "name": "Set All Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Search Google for: {{ $json.query }}\n\nFind 3 recent job postings. For each job, extract:\n- Company name\n- Job title\n- Job description (full text)\n- Location (Remote/Lahore/Other)\n- Experience required\n- Required skills (especially Kotlin, Jetpack Compose, Android)\n- Job link/URL (use actual URL from search result, or LinkedIn jobs URL if not available)\n\nReturn results as a structured list.",
+        "options": {
+          "systemMessage": "You are a job search assistant. Search Google ONCE for the given query. Extract exactly 3 job postings and return immediately. Do not search more than 3 times. Keep response brief. For job links, use the actual URL from search results. If no URL found, construct it as: https://www.linkedin.com/jobs/search/?keywords=Android+Developer+Kotlin",
+          "maxIterations": 20,
+          "returnIntermediateSteps": false
+        }
+      },
+      "id": "d5585c09-d7cc-404c-9765-45011b3d5b72",
+      "name": "Job Search Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        720,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "gl": "us",
+          "device": "desktop",
+          "no_cache": false,
+          "google_domain": "google.com",
+          "hl": "en"
+        }
+      },
+      "id": "ca8e7162-cb8f-4a9b-b2f4-d7fcb70e0b2f",
+      "name": "Google Search Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        864,
+        752
+      ],
+      "credentials": {
+        "serpApi": {
+          "id": "j1EJobBleIrgOsKt",
+          "name": "SerpAPI account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allJobs = [];\nconst items = $input.all();\n\nfor (const item of items) {\n  const searchResults = item.json.output || '';\n  const query = item.json.query || '';\n  \n  // Simple parsing - in production, this would be more robust\n  const jobMatches = searchResults.match(/\\d+\\..+?(?=\\d+\\.|$)/gs) || [];\n  \n  for (const jobText of jobMatches) {\n    const companyMatch = jobText.match(/Company:\\s*([^\\n*-]+)/);\n    const titleMatch = jobText.match(/Title:\\s*([^-]+)/);\n    const locationMatch = jobText.match(/(?:Remote|Lahore|Location:\\s*)([^-]+)/);\n    const experienceMatch = jobText.match(/(\\d+-\\d+)\\s*years/);\n    const skillsMatch = jobText.match(/(?:Kotlin|Jetpack Compose|MVVM|Android)[^-]*/);\n    const linkMatch = jobText.match(/https?:\\/\\/[^\\s]+/);\n    \n    allJobs.push({\n      company: companyMatch ? companyMatch[1].trim() : 'Unknown Company',\n      jobTitle: titleMatch ? titleMatch[1].trim() : 'Android Developer',\n      description: jobText,\n      location: locationMatch ? locationMatch[1].trim() : 'Remote',\n      experience: experienceMatch ? experienceMatch[1] : '1-3',\n      skills: skillsMatch ? skillsMatch[0] : 'Kotlin, Android',\njobLink: linkMatch ? linkMatch[0] : `https://www.google.com/search?q=${encodeURIComponent(query)}+android+developer+job`,      education: 'BS Computer Science or equivalent',\n      searchQuery: query\n    });\n  }\n}\n\nreturn allJobs.slice(0, 20);"
+      },
+      "id": "338dc843-f2d5-4496-9f88-ae669ec0ee1a",
+      "name": "Parse Job Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Score this job for Fardeel Azhar (Android Developer with 1.5 years professional experience):\n\nJob Details:\nCompany: {{ $json.company }}\nTitle: {{ $json.jobTitle }}\nDescription: {{ $json.description }}\nLocation: {{ $json.location }}\nExperience Required: {{ $json.experience }} years\nSkills: {{ $json.skills }}\nEducation: {{ $json.education }}\n\nCandidate Profile:\n- Experience: 1.5 years professional + 3 years overall Android development\n- Skills: Kotlin, Jetpack Compose, Clean Architecture, MVVM, Multi-module, Retrofit, GraphQL Apollo, Room, Firebase, Dagger Hilt, Coroutines, Flow\n- Location Preference: Remote (Foreign companies first), Lahore second\n- Education: BS Software Engineering (in progress, 2025-2029)\n- Achievement: Contributed to 5M+ downloads app with 4.4 rating\n\nScoring Criteria:\n1. Kotlin + Jetpack Compose skills match (40 points max)\n2. Experience level match 1-3 years (25 points max)\n3. Remote or Lahore location match (20 points max)\n4. Education requirement match (15 points max)\n\nProvide:\n- matchScore (total out of 100)\n- skillsScore (out of 40)\n- experienceScore (out of 25)\n- locationScore (out of 20)\n- educationScore (out of 15)\n- reasoning (brief explanation)",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a job matching expert. Score jobs based on the candidate profile and criteria provided. Be objective and precise.",
+          "maxIterations": 5
+        }
+      },
+      "id": "500906c4-f8de-4541-879b-555753278a28",
+      "name": "Job Scoring Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1328,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "autoFix": true
+      },
+      "id": "63ad26e3-4d81-4f13-8777-e3fc7c78e07d",
+      "name": "Scoring Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1520,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d9ad861b-6146-4f28-b1e9-2b23994de65e",
+              "name": "matchScore",
+              "value": "={{ Number($json.output.state.match(/matchScore[^:]*:\\s*(\\d+)/)?.[1] ?? 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "dd0c8218-897c-47b7-981a-74e5729cc1c0",
+              "name": "=scoreReasoning",
+              "value": "={{ $json.output.state.split(/[Mm]atch[Ss]core: /)[1] ? $json.output.state.split(/[Mm]atch[Ss]core: /)[1].split(',')[0].trim() : '0' }}",
+              "type": "string"
+            },
+            {
+              "id": "1c5ee69f-2e00-45d6-9049-b5675d5baab5",
+              "name": "jobLink",
+              "value": "={{ $('Parse Job Results').item.json.jobLink }}\n",
+              "type": "string"
+            },
+            {
+              "id": "5b02101a-e228-4cdd-b2e5-fe6c1fda0fd3",
+              "name": "date",
+              "value": "={{ $now.format('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "id": "dbd8ab9d-f3c6-4f0e-b715-b9f7e7fda78e",
+              "name": "company",
+              "value": "={{ $('Parse Job Results').item.json.company?.replace(/\\*+/g, '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "962ca710-e095-4ae3-b1e8-79e47494ddf2",
+              "name": "jobTitle",
+              "value": "={{ $('Parse Job Results').item.json.jobTitle }}",
+              "type": "string"
+            },
+            {
+              "id": "0789557b-64d4-48f9-8fa8-a010332e68c2",
+              "name": "status",
+              "value": "Manual Review Required",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a1dc5843-5747-468c-a58d-d7d2bca85030",
+      "name": "Combine Job and Score",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1792,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.matchScore }}",
+              "rightValue": 70,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "169d62a3-3e43-4b27-81d0-0e23475e92de",
+      "name": "Filter by Score",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2080,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate a professional cover letter for this job application:\n\nJob Details:\nCompany: {{ $json.company }}\nPosition: {{ $json.jobTitle }}\nDescription: {{ $json.description }}\n\nCandidate: Fardeel Azhar\nEmail: fardeelazhar82@gmail.com\nLocation: Lahore, Pakistan\n\nKey Points to Include:\n- 1.5 years professional experience at Dev Entity (March 2025 - Present)\n- Contributed to app with 5M+ downloads and 4.4 star rating on Play Store\n- Expert in Multi-module Clean Architecture and MVVM\n- Strong experience with GraphQL Apollo Client\n- Jetpack Compose expertise\n- Skills: Kotlin, Jetpack Compose, Clean Architecture, MVVM, Retrofit, GraphQL, Room, Firebase, Dagger Hilt, Coroutines, Flow\n- Currently pursuing BS Software Engineering at Virtual University (2025-2029)\n- GitHub: https://github.com/ChFardeelAzhar\n\nTone: Professional, confident, enthusiastic\nLength: 250-350 words\nFormat: Standard cover letter with greeting, body paragraphs, and closing",
+        "options": {
+          "systemMessage": "You are a professional cover letter writer specializing in tech positions. Write compelling, personalized cover letters that highlight the candidate's achievements and match them to the job requirements.",
+          "maxIterations": 5
+        }
+      },
+      "id": "d8660e81-acf3-4fc8-9d22-c84061dc4a1e",
+      "name": "Cover Letter Generator",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2496,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "coverLetter",
+              "name": "coverLetter",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "Ready to Apply",
+              "type": "string"
+            },
+            {
+              "id": "date",
+              "name": "date",
+              "value": "={{ $now.toFormat(\"yyyy-MM-dd\") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "21d63e3f-97cc-450e-af74-28a2943d8a7b",
+      "name": "Add Cover Letter",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2912,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "fardeelazhar82@gmail.com",
+        "subject": "=🎯 Job Match Found: {{ $('Combine Job and Score').item.json.jobTitle }} at {{ $('Combine Job and Score').item.json.company }} ({{ $('Combine Job and Score').item.json.matchScore }}% match)",
+        "message": "=<h2>New Job Match Found!</h2>\n<p><strong>Company:</strong> {{ $('Combine Job and Score').item.json.company }}</p>\n<p><strong>Position:</strong> {{ $('Combine Job and Score').item.json.jobTitle }}</p>\n<p><strong>Match Score:</strong> {{ $('Combine Job and Score').item.json.matchScore }}%</p>\n<p><strong>Job Link:</strong> <a href=\"{{ $('Combine Job and Score').item.json.jobLink }}\">{{ $('Combine Job and Score').item.json.jobLink }}</a></p>\n<h3>Score Breakdown:</h3>\n<p>{{ $('Combine Job and Score').item.json.scoreReasoning }}</p>\n<h3>Your Custom Cover Letter:</h3>\n<div style=\"background: #f5f5f5; padding: 15px; border-left: 4px solid #4CAF50;\">\n{{ $json.coverLetter }}\n</div>\n<h3>Application Instructions:</h3>\n<ol>\n<li>Review the job posting at the link above</li>\n<li>Customize the cover letter if needed</li>\n<li>Submit your application with your resume</li>\n<li>Update the status in the tracking sheet</li>\n</ol>\n<p><em>This email was sent automatically by your job hunting workflow.</em></p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "02001764-45b5-4527-87af-013486c595f4",
+      "name": "Send Immediate Match Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        3216,
+        512
+      ],
+      "webhookId": "b7b229b7-ccc3-4423-94cf-66f48ac3fbe8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "R6364HLrtoV8jrCe",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1rIpUYI5yirBuLKjQGSFkNWbFYYIi-inExGZAHfb5kRI",
+          "mode": "list",
+          "cachedResultName": "Job Applications Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rIpUYI5yirBuLKjQGSFkNWbFYYIi-inExGZAHfb5kRI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rIpUYI5yirBuLKjQGSFkNWbFYYIi-inExGZAHfb5kRI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $('Combine Job and Score').item.json.date }}",
+            "Job Link": "={{ $('Combine Job and Score').item.json.jobLink }}",
+            "Company ": "={{ $('Combine Job and Score').item.json.company }}",
+            "Job Title": "={{ $('Combine Job and Score').item.json.jobTitle }}",
+            "Match Score": "={{ $('Combine Job and Score').item.json.matchScore }}",
+            "Status": "={{ $('Combine Job and Score').item.json.status }}",
+            "Cover Letter": "={{ $('Add Cover Letter').item.json.coverLetter }}"
+          },
+          "matchingColumns": [
+            "Job Link"
+          ],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company ",
+              "displayName": "Company ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Match Score",
+              "displayName": "Match Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Link",
+              "displayName": "Job Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Cover Letter",
+              "displayName": "Cover Letter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b1f34a83-f7c5-4909-9947-3c2db1a1a76f",
+      "name": "Store in Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3504,
+        512
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "d2Bs0Kw6fJU0BS5x",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "Manual Review Required",
+              "type": "string"
+            },
+            {
+              "id": "date",
+              "name": "date",
+              "value": "={{ $now.toFormat(\"yyyy-MM-dd\") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "1aeb21c0-c3c4-48d5-9e78-e905da710704",
+      "name": "Mark for Manual Review",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2496,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1rIpUYI5yirBuLKjQGSFkNWbFYYIi-inExGZAHfb5kRI",
+          "mode": "list",
+          "cachedResultName": "Job Applications Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rIpUYI5yirBuLKjQGSFkNWbFYYIi-inExGZAHfb5kRI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rIpUYI5yirBuLKjQGSFkNWbFYYIi-inExGZAHfb5kRI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job Link": "={{ $json.jobLink }}",
+            "Date": "={{ $json.date }}",
+            "Company ": "={{ $json.company }}",
+            "Job Title": "={{ $json.jobTitle }}",
+            "Match Score": "={{ $json.matchScore }}",
+            "Status": "={{ $json.status }}",
+            "Cover Letter": "="
+          },
+          "matchingColumns": [
+            "Job Link"
+          ],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company ",
+              "displayName": "Company ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Match Score",
+              "displayName": "Match Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Link",
+              "displayName": "Job Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Cover Letter",
+              "displayName": "Cover Letter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e0c72e23-183e-47c1-a6bb-9da98672f4ba",
+      "name": "Store Manual Review Jobs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2784,
+        768
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "d2Bs0Kw6fJU0BS5x",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 19
+            }
+          ]
+        }
+      },
+      "id": "522f14b4-1fa6-480c-98db-c35f1f7d61a6",
+      "name": "Daily Summary - 7 PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        1264
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1rIpUYI5yirBuLKjQGSFkNWbFYYIi-inExGZAHfb5kRI",
+          "mode": "list",
+          "cachedResultName": "Job Applications Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rIpUYI5yirBuLKjQGSFkNWbFYYIi-inExGZAHfb5kRI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rIpUYI5yirBuLKjQGSFkNWbFYYIi-inExGZAHfb5kRI/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "c161c3d7-a769-41eb-87e9-34e9762687f0",
+      "name": "Fetch Today Jobs from Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        464,
+        1264
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "d2Bs0Kw6fJU0BS5x",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = new Date().toISOString().split('T')[0];\nconst items = $input.all();\n\nconst todayJobs = items.filter(item => item.json.date === today);\n\nconst highMatches = todayJobs.filter(j => j.json.matchScore >= 70);\nconst manualReview = todayJobs.filter(j => j.json.matchScore >= 60 && j.json.matchScore < 70);\n\nreturn [{\n  totalScanned: todayJobs.length,\n  highMatches: highMatches.length,\n  manualReviewCount: manualReview.length,\n  highMatchList: highMatches.map(j => ({\n    company: j.json.company,\n    title: j.json.jobTitle,\n    score: j.json.matchScore,\n    link: j.json.jobLink,\n    coverLetter: j.json.coverLetter\n  })),\n  manualReviewList: manualReview.map(j => ({\n    company: j.json.company,\n    title: j.json.jobTitle,\n    score: j.json.matchScore,\n    link: j.json.jobLink\n  }))\n}];"
+      },
+      "id": "1e552d08-b2be-4ac9-a6e1-50bd752c580a",
+      "name": "Filter Today Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        1264
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nlet html = '<h1>Daily Job Hunt Summary - ' + new Date().toLocaleDateString() + '</h1>';\n\nhtml += '<h2>Overview</h2>';\nhtml += '<ul>';\nhtml += '<li><strong>Total Jobs Scanned:</strong> ' + data.totalScanned + '</li>';\nhtml += '<li><strong>High Matches (70%+):</strong> ' + data.highMatches + '</li>';\nhtml += '<li><strong>Manual Review (60-69%):</strong> ' + data.manualReviewCount + '</li>';\nhtml += '</ul>';\n\nif (data.highMatches > 0) {\n  html += '<h2>🎯 High Match Jobs (70%+)</h2>';\n  for (const job of data.highMatchList) {\n    html += '<div style=\"border: 1px solid #ddd; padding: 15px; margin: 10px 0; background: #f9f9f9;\">';\n    html += '<h3>' + job.company + ' - ' + job.title + '</h3>';\n    html += '<p><strong>Match Score:</strong> ' + job.score + '%</p>';\n    html += '<p><strong>Link:</strong> <a href=\"' + job.link + '\">' + job.link + '</a></p>';\n    html += '<details><summary>View Cover Letter</summary><pre>' + job.coverLetter + '</pre></details>';\n    html += '</div>';\n  }\n}\n\nif (data.manualReviewCount > 0) {\n  html += '<h2>⚠️ Manual Review Required (60-69%)</h2>';\n  for (const job of data.manualReviewList) {\n    html += '<div style=\"border: 1px solid #ffa500; padding: 15px; margin: 10px 0; background: #fff8e1;\">';\n    html += '<h3>' + job.company + ' - ' + job.title + '</h3>';\n    html += '<p><strong>Match Score:</strong> ' + job.score + '%</p>';\n    html += '<p><strong>Link:</strong> <a href=\"' + job.link + '\">' + job.link + '</a></p>';\n    html += '</div>';\n  }\n}\n\nif (data.highMatches === 0 && data.manualReviewCount === 0) {\n  html += '<p><em>No matches found today. The search will continue tomorrow.</em></p>';\n}\n\nreturn [{ html, subject: 'Daily Job Hunt Summary - ' + data.totalScanned + ' jobs scanned, ' + data.highMatches + ' matches' }];"
+      },
+      "id": "5fad0e08-93ae-4d9a-a285-0341980bddf6",
+      "name": "Generate Summary Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        1264
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "fardeelazhar82@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "0590056e-9fd2-46dd-ba4b-23b4292c0435",
+      "name": "Send Daily Summary Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1136,
+        1264
+      ],
+      "webhookId": "b82ed353-fc09-4793-b86f-16ff8dccba0a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "R6364HLrtoV8jrCe",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "bc0f2300-d03a-4e4d-ac03-0353fd7fa62b",
+      "name": "Wait Between Searches",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "c9a3296b-cfeb-47e0-8c70-29d8a5fc1a42"
+    },
+    {
+      "parameters": {
+        "model": "=tencent/hy3-preview:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        720,
+        752
+      ],
+      "id": "ab499c07-3581-4322-b52b-2130a2dbc824",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "TGXoN8jJftAzmRld",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "=tencent/hy3-preview:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        736
+      ],
+      "id": "697bbaef-7263-4aed-b832-ba0ca1f27d18",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "TGXoN8jJftAzmRld",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "=tencent/hy3-preview:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        2496,
+        976
+      ],
+      "id": "09fd110f-70c4-4ce6-8df5-ad2d533f2363",
+      "name": "OpenRouter Chat Model2",
+      "credentials": {
+        "openRouterApi": {
+          "id": "TGXoN8jJftAzmRld",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "=tencent/hy3-preview:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        896
+      ],
+      "id": "bd83c304-8b11-40cf-9e16-62c2007b8759",
+      "name": "OpenRouter Chat Model3",
+      "credentials": {
+        "openRouterApi": {
+          "id": "TGXoN8jJftAzmRld",
+          "name": "OpenRouter account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Wait After Search": {
+      "main": [
+        []
+      ]
+    },
+    "Wait After Scoring": {
+      "main": [
+        []
+      ]
+    },
+    "Wait After Cover Letter": {
+      "main": [
+        []
+      ]
+    },
+    "Daily Job Search - 9 AM": {
+      "main": [
+        [
+          {
+            "node": "Set All Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set All Queries": {
+      "main": [
+        [
+          {
+            "node": "Job Search Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Search Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Job Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Search Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Job Search Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Job Results": {
+      "main": [
+        [
+          {
+            "node": "Job Scoring Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Scoring Agent": {
+      "main": [
+        [
+          {
+            "node": "Combine Job and Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scoring Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Job Scoring Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Job and Score": {
+      "main": [
+        [
+          {
+            "node": "Filter by Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter by Score": {
+      "main": [
+        [
+          {
+            "node": "Cover Letter Generator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark for Manual Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cover Letter Generator": {
+      "main": [
+        [
+          {
+            "node": "Add Cover Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Cover Letter": {
+      "main": [
+        [
+          {
+            "node": "Send Immediate Match Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Immediate Match Email": {
+      "main": [
+        [
+          {
+            "node": "Store in Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark for Manual Review": {
+      "main": [
+        [
+          {
+            "node": "Store Manual Review Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Summary - 7 PM": {
+      "main": [
+        [
+          {
+            "node": "Fetch Today Jobs from Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Today Jobs from Sheets": {
+      "main": [
+        [
+          {
+            "node": "Filter Today Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Today Jobs": {
+      "main": [
+        [
+          {
+            "node": "Generate Summary Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Summary Email": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Summary Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Job Search Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Job Scoring Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Cover Letter Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Scoring Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4e0ff09b-b51e-4c17-af4e-9306fc16c708",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e4b0c35fc302ea2b73a85df721cbe3bab846d02150a5f687a6b3cb2a4e5eb511"
+  },
+  "id": "viNDnDmFIb0prw6K",
+  "tags": []
+}
