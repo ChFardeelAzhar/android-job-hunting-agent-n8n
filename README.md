@@ -79,4 +79,18 @@ Click Publish → Done! Agent runs every morning at 9 AM.
 - GitHub: [ChFardeelAzhar](https://github.com/ChFardeelAzhar)
 - LinkedIn: [fardeel-azhar](https://linkedin.com/in/fardeel-azhar-540a7033b)
 
-## ⭐ If this helped you, please star the repo!
+<div align="center">
+
+## 🚀 Support & Contribution
+
+If **Android Developer Job Hunting Agent** saves you time and effort, please consider supporting the project!
+
+<p align="center">
+  <a href="https://github.com/ChFardeelAzhar/compose-auto-shimmer">
+    <img src="https://img.shields.io/badge/Star%20on%20GitHub-24292e?logo=github&logoColor=white&style=flat" />
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://fardeel.gumroad.com/l/duvlgm">
+    <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%245-orange?logo=buy-me-a-coffee&style=flat" />
+  </a>
+</p>
